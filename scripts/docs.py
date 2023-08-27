@@ -1,5 +1,8 @@
 import json
+<<<<<<< HEAD
 import logging
+=======
+>>>>>>> feat/5060-automatic-language-names
 import os
 import re
 import shutil
@@ -267,28 +270,67 @@ def live(
     mkdocs.commands.serve.serve(dev_addr="127.0.0.1:8008")
 
 
+<<<<<<< HEAD
 def update_config() -> None:
     config = get_en_config()
     languages = [{"en": "/"}]
     alternate: List[Dict[str, str]] = config["extra"].get("alternate", [])
     alternate_dict = {alt["link"]: alt["name"] for alt in alternate}
     new_alternate: List[Dict[str, str]] = []
+=======
+def update_config(lang: str):
+    lang_path: Path = docs_path / lang
+    config_path = lang_path / mkdocs_name
+    current_config: dict = mkdocs.utils.yaml_load(
+        config_path.read_text(encoding="utf-8")
+    )
+    if lang == "en":
+        config = get_en_config()
+    else:
+        config = get_base_lang_config(lang)
+        config["nav"] = current_config["nav"]
+        config["theme"]["language"] = current_config["theme"]["language"]
+
+    languages: List[Dict[str, str]] = []
+    alternate: List[Dict[str, str]] = []
+
+    # Language names sourced from https://quickref.me/iso-639-1 . FastAPI
+    # contributors may wish to update or change these, e.g. to fix capitalisation.
+    local_language_names: Dict[str, str] = json.loads(
+        (Path(__file__).parent / "../docs/language_names.json").read_text()
+    )
+>>>>>>> feat/5060-automatic-language-names
     for lang_path in get_lang_paths():
-        if lang_path.name == "en" or not lang_path.is_dir():
+        if not lang_path.is_dir():
             continue
-        name = lang_path.name
-        languages.append({name: f"/{name}/"})
-    for lang_dict in languages:
-        name = list(lang_dict.keys())[0]
-        url = lang_dict[name]
-        if url not in alternate_dict:
-            new_alternate.append({"link": url, "name": name})
+
+        code = lang_path.name
+        if code == "en":
+            # English is served at the root url
+            url = "/"
         else:
-            use_name = alternate_dict[url]
-            new_alternate.append({"link": url, "name": use_name})
+            # All other languages are served under a path that starts with their
+            # language code
+            url = f"/{code}/"
+
+        if code in local_language_names:
+            # This is for all real languages
+            name = f"{code} - {local_language_names[code]}"
+        else:
+            # This is for test languages, e.g. the language code xx
+            name = code
+
+        languages.append({code: url})
+        alternate.append({"link": url, "name": name})
+
     config["nav"][1] = {"Languages": languages}
+<<<<<<< HEAD
     config["extra"]["alternate"] = new_alternate
     en_config_path.write_text(
+=======
+    config["extra"]["alternate"] = alternate
+    config_path.write_text(
+>>>>>>> feat/5060-automatic-language-names
         yaml.dump(config, sort_keys=False, width=200, allow_unicode=True),
         encoding="utf-8",
     )
